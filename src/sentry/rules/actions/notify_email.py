@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 # Mail
 
 # TargetType = Enum('TargetType', 'owners team member')
+# TODD(jeff): change this to issue owners
 OWNERS = "Owners"
 TEAM = "Team"
 MEMBER = "Member"
@@ -59,7 +60,19 @@ CHOICES = [(OWNERS, "Owners"), (TEAM, "Team"), (MEMBER, "Member")]
 
 class NotifyEmailForm(forms.Form):
     targetType = forms.ChoiceField(choices=CHOICES)
-    targetIdentifier = BoundedBigIntegerField().formfield(required=False)
+    targetIdentifier = BoundedBigIntegerField().formfield(
+        required=False, help_test="Only required if 'Member' or 'Team' is selected"
+    )
+
+    # TODO(jeff): Validation on target type an did
+    def clean(self):
+        target_type = self.cleaned_data.get["targetType"]
+        target_identifier = self.cleaned_data.get["targetIdentifier"]
+
+        # TODO(jeff): check if target_identifier is ever expected to be < 0
+        if target_type and (target_identifier is None):
+            msg = forms.ValidationError("This field is required")
+            self.add_error["target_identifier", msg]
 
 
 class NotifyEmailAction(EventAction):
