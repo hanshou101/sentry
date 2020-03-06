@@ -165,3 +165,34 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
             rv[x["project_id"], x["release"]]["stats"][stats_period][time_bucket][1] = x["sessions"]
 
     return rv
+
+
+def get_project_release_stats(
+    project_id, release, stat, rollup, start, end, project_id, environments=None
+):
+    assert stat in ("users", "sessions")
+
+    filter_keys = {"project_id": [project_id]}
+    conditions = [["release", "=", release]]
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+
+    rv = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[
+            "release",
+            stat,
+            stat + "_crashed",
+            stat + "_abnormal",
+            stat + "_errored",
+            "bucketed_started",
+        ],
+        groupby=["release", "project_id"],
+        start=start,
+        end=end,
+        rollup=rollup,
+        conditions=conditions,
+        filter_keys=filter_keys,
+    )["data"]
+
+    buckets = int((end - start).total_seconds() / rollup)
